@@ -39,12 +39,14 @@ class Direction(Enum):
 "couts des actions"
 step=-1
 stepTrap=-20
-stepExit=200
-stepWall=-5
+stepExit=500
+stepWall=-100
 nbMaxSteps=20   #nombre maximum de dpelacememtns autorises
 stepsTaken=0
 penalty=0  #long term penalty
 position=[0, 0] #starting position, top left
+Q=[]
+gamma=0.95
     
 def move(maze):
     global penalty
@@ -64,37 +66,77 @@ def move(maze):
             moves.append(Direction.up)
         dest=[]
         d=moves[random.randint(0,len(moves)-1)]#how and why he moves
-        if d in moves:
-            if(d==Direction.left):
-                dest.append(position[0]-1) #x decreases by 1 place
-                dest.append(position[1]) #y does not change
-            if(d==Direction.right):
-                dest.append(position[0]+1) #x increases by 1 place
-                dest.append(position[1]) #y does not change
-            if(d==Direction.up):
-                dest.append(position[0]) #x does not change
-                dest.append(position[1]+1) #y increases by 1
-            if(d==Direction.down):
-                dest.append(position[0]) #x does not change
-                dest.append(position[1]-1) #y decreases by 1
-            if(maze[dest[0]][dest[1]]=='3'): #trap
-                penalty=penalty+stepTrap
-                position=dest
-                print("trap")
-            if(maze[dest[0]][dest[1]]=='0'): #wall
-                penalty=penalty+stepWall #stays in same position as before
-                print("wall")
-            if(maze[dest[0]][dest[1]]=='5'): #exit
-                penalty=penalty+stepExit
-                position=dest
-                print("exit")
-            if(maze[dest[0]][dest[1]]=='1'): #trap
-                penalty=step+penalty
-                position=dest
-            stepsTaken=stepsTaken+1
-            print(dest)
-            move(maze)
-            return(dest)
+        QFill(maze,moves)
+        if(d==Direction.left):
+            dest.append(position[0]-1) #x decreases by 1 place
+            dest.append(position[1]) #y does not change
+        if(d==Direction.right):
+            dest.append(position[0]+1) #x increases by 1 place
+            dest.append(position[1]) #y does not change
+        if(d==Direction.up):
+            dest.append(position[0]) #x does not change
+            dest.append(position[1]+1) #y increases by 1
+        if(d==Direction.down):
+            dest.append(position[0]) #x does not change
+            dest.append(position[1]-1) #y decreases by 1
+        if(maze[dest[0]][dest[1]]=='3'): #trap
+            penalty=penalty+stepTrap
+            position=dest
+            print("trap")
+        if(maze[dest[0]][dest[1]]=='0'): #wall
+            penalty=penalty+stepWall #stays in same position as before
+            print("wall")
+        if(maze[dest[0]][dest[1]]=='5'): #exit
+            penalty=penalty+stepExit
+            position=dest
+            print("exit")
+        if(maze[dest[0]][dest[1]]=='1'): #trap
+            penalty=step+penalty
+            position=dest
+        stepsTaken=stepsTaken+1
+        print(dest)
+        return(dest)
+            
+def QFill(maze,moves):
+    global position
+    global Q
+    global step
+    global stepTrap
+    global stepWall
+    global stepExit
+    for d in moves:
+        reward=0
+        newpos=position
+        if d==Direction.up:
+            newpos=[position[0], position[1]+1]
+        if d==Direction.down:
+            newpos=[position[0], position[1]-1]
+        if d==Direction.left:
+            newpos=[position[0]-1, position[1]]
+        if d==Direction.left:
+            newpos=[position[0]+1, position[1]]
+        if(maze[newpos[0]][newpos[1]]=='3'):
+            "trap"
+            reward=stepTrap
+        elif(maze[newpos[0]][newpos[1]]=='0'):
+            "wall"
+            reward=stepWall
+        elif(maze[newpos[0]][newpos[1]]=='5'):
+            "exit"
+            reward=stepExit
+        elif(maze[newpos[0]][newpos[1]]=='1'):
+            "nada"
+            reward=step
+        """need to implement the equation here"""
+        p=[position[0],position[1],d]
+        Q[position[0]][position[1]]={'desc':p,'reward':reward }
+    
+def showQ():
+    print(Q)
+    for x in range (cols):
+        for y in range (rows):
+            print(Q[x][y])
+        print("\n")
 
 def buildMaze(lab, C):
     global rows
@@ -125,6 +167,8 @@ print("Our Labyrinth:")
 print(lab)
 "get number of lines/rows & columns: LABYRINTH MUST BE SQUARE"
 cols=rows=len(lab.splitlines())
+for i in range(rows):
+    Q.append([0]*(cols))
 "GUI"
 "build the output window"
 top = Tk()
@@ -132,22 +176,9 @@ C = Canvas(top, bg = "white", height = rows*40, width = cols*40)
 "matrix map of the maze"
 lab=lab.splitlines()
 maze=buildMaze(lab, C)
-
-"possible moves from current position"
-moves=[]
-if (position[0]!=0):
-    moves.append(Direction.left)
-if (position[0]!=cols-1):
-    moves.append(Direction.right)
-if (position[1]!=0):
-    moves.append(Direction.down)
-if (position[1]!=rows-1):
-    moves.append(Direction.up)
-
 d=Direction.up    
 "move"
-dest=[]
-dest=position
-dest=move(maze)
-top.after(1000, C.move(robot, dest[0]*40, dest[1]*40))
+while(stepsTaken<nbMaxSteps):
+    move(maze)
 top.mainloop()
+showQ()
