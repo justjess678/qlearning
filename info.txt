@@ -1,0 +1,24 @@
+une pos + une action = case d'arrivée + recompense
+vide=-1, piege=-5, mur=-100 (=interdit)
+sortie=500
+Q associe a chasque case une direction et une valeur
+******************
+ALGO:
+- robot est en s
+- on choisit une direction a
+- le robot bouge et reçoit une récompense R(s,a)
+- Q(s,a))R(s,a)+YmaxQ(s',a)
+
+Ymax=1 ou s'en approche
+
+******************
+màj de Q
+ex:
+s->s'=-1
+Q s': up=5, down=20-> meilleure valeur
+Q(s,a)=19
+
+******************
+
+GUI: flèche qui pointe vers la + grande valeur de Q sur chaque case
+flèche pâle pour faible valeur de Qmax, fleche opaque pour grande valeur de Qmax
