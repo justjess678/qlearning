@@ -19,6 +19,7 @@ import random
 import tkinter
 from tkinter import *
 from enum import Enum
+import numpy as np
 
 class Strategie(Enum):
     Exploration=1;
@@ -31,10 +32,10 @@ class Square(Enum):
     Exit=5
     
 class Direction(Enum):
-    up=1
-    down=2
-    left=3
-    right=4
+    up=0
+    down=1
+    left=2
+    right=3
 
 "couts des actions"
 step=-1
@@ -47,6 +48,10 @@ penalty=0  #long term penalty
 position=[0, 0] #starting position, top left
 Q=[]
 gamma=0.95
+robotID=0
+"GUI"
+"build the output window"
+top = Tk()
     
 def move(maze):
     global penalty
@@ -54,8 +59,14 @@ def move(maze):
     global stepsTaken
     global rows
     global cols
+    global robotID
+    global top
     if(stepsTaken<nbMaxSteps):
         moves=[]
+        #s"il finit, il revient au début
+        if(position[0]==rows-1 and position[1]==cols-1):
+            position[0]=0
+            position[1]=0
         if (position[0]!=0):
             moves.append(Direction.left)
         if (position[0]!=cols-1):
@@ -74,29 +85,27 @@ def move(maze):
             dest.append(position[0]+1) #x increases by 1 place
             dest.append(position[1]) #y does not change
         if(d==Direction.up):
-            dest.append(position[0]) #x does not change
+            dest.append(position[0]) #x does not change&&
             dest.append(position[1]+1) #y increases by 1
         if(d==Direction.down):
             dest.append(position[0]) #x does not change
             dest.append(position[1]-1) #y decreases by 1
-        if(maze[dest[0]][dest[1]]=='3'): #trap
-            penalty=penalty+stepTrap
+        penalty=penalty+values[dest[0]][dest[1]]
+        if(maze[dest[0]][dest[1]]!='0'): #wall
             position=dest
-            print("trap")
-        if(maze[dest[0]][dest[1]]=='0'): #wall
-            penalty=penalty+stepWall #stays in same position as before
-            print("wall")
-        if(maze[dest[0]][dest[1]]=='5'): #exit
-            penalty=penalty+stepExit
-            position=dest
-            print("exit")
-        if(maze[dest[0]][dest[1]]=='1'): #trap
-            penalty=step+penalty
-            position=dest
+        top.after(500, updateRobotPos(dest))
         stepsTaken=stepsTaken+1
         print(dest)
         return(dest)
-            
+        
+def updateRobotPos(dest):
+    global position
+    global C
+    global lab
+    global values
+    buildMaze(lab, C, values)
+    C.create_oval(0+dest[0]*40, 0+dest[1]*40, 40+dest[0]*40, 40+dest[1]*40, fill="yellow")
+    
 def QFill(maze,moves):
     global position
     global Q
@@ -104,6 +113,7 @@ def QFill(maze,moves):
     global stepTrap
     global stepWall
     global stepExit
+    global gamma
     for d in moves:
         reward=0
         newpos=position
@@ -113,32 +123,20 @@ def QFill(maze,moves):
             newpos=[position[0], position[1]-1]
         if d==Direction.left:
             newpos=[position[0]-1, position[1]]
-        if d==Direction.left:
+        if d==Direction.right:
             newpos=[position[0]+1, position[1]]
-        if(maze[newpos[0]][newpos[1]]=='3'):
-            "trap"
-            reward=stepTrap
-        elif(maze[newpos[0]][newpos[1]]=='0'):
-            "wall"
-            reward=stepWall
-        elif(maze[newpos[0]][newpos[1]]=='5'):
-            "exit"
-            reward=stepExit
-        elif(maze[newpos[0]][newpos[1]]=='1'):
-            "nada"
-            reward=step
-        """need to implement the equation here"""
-        p=[position[0],position[1],d]
-        Q[position[0]][position[1]]={'desc':p,'reward':reward }
+        reward=reward+values[position[0],position[1]]
+        state=[position[0],position[1],d]
+        Q[position[0]][position[1]]={'state':state,'reward':reward }
+    #new_q = qsa + (values[position[0]][position[1]] + gamma * max(q[next_state, :]) - qsa)
     
 def showQ():
-    print(Q)
     for x in range (cols):
         for y in range (rows):
             print(Q[x][y])
         print("\n")
 
-def buildMaze(lab, C):
+def buildMaze(lab, C, values):
     global rows
     global cols
     global robot
@@ -150,16 +148,23 @@ def buildMaze(lab, C):
             maze[y][x]=lab[y][x]
             if(maze[y][x]=="1"):
                 myColor="white"
+                values[y][x]=step
             elif(maze[y][x]=="0"):
                 myColor="black"
+                values[y][x]=stepWall
             elif(maze[y][x]=="3"):
                 myColor="red"
+                values[y][x]=stepTrap
             else:
                 myColor="green"
+                values[y][x]=stepExit
             C.create_polygon(x*40, y*40, x*40+40, y*40, x*40+40 ,y*40+40, x*40, y*40+40, fill=myColor)
-    robot=C.create_oval(0, 0, 40, 40, fill="yellow")
-    C.pack()
+    #robotID=drawRobot(C,20,20,20)
     return maze
+
+def drawRobot(canv,x,y,rad):
+    # changed this to return the ID
+    return canv.create_oval(x-rad,y-rad,x+rad,y+rad,width=0,fill='yellow')
     
 myFile = open("labyrinth.txt","r")
 lab=myFile.read()
@@ -169,16 +174,17 @@ print(lab)
 cols=rows=len(lab.splitlines())
 for i in range(rows):
     Q.append([0]*(cols))
-"GUI"
-"build the output window"
-top = Tk()
-C = Canvas(top, bg = "white", height = rows*40, width = cols*40)
 "matrix map of the maze"
 lab=lab.splitlines()
-maze=buildMaze(lab, C)
+values=np.zeros((rows,cols))
+C = Canvas(top, bg = "white", height = rows*40, width = cols*40)
+maze=buildMaze(lab, C, values)
+C.pack()
+
 d=Direction.up    
 "move"
 while(stepsTaken<nbMaxSteps):
     move(maze)
+    top.update()
 top.mainloop()
 showQ()
