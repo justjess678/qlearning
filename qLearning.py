@@ -201,10 +201,13 @@ def currentQEmpty():
     return 0
     
 def showQ():
+    thefile = open('Q.txt', 'w')
     for x in range (cols):
         for y in range (rows):
             print(Q[x][y])
+            thefile.write("%s\t\t" % Q[x][y])
             print("\t\t")
+        thefile.write("\n")    
         print("\n")
 
 def buildMaze(lab, C, values):
@@ -246,6 +249,7 @@ def randomMaze(size):
             random_index = randrange(0,len(ch))
             rmaze[i][j]=ch[random_index]
     rmaze[size-1][size-1]='5'
+    rmaze[0][0]='1'
     return rmaze
     
 myFile = open("labyrinth.txt","r")
