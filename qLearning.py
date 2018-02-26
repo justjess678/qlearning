@@ -24,6 +24,7 @@ from tkinter import *
 from enum import Enum
 import numpy as np
 from random import randrange
+import os
 
 class Strategie(Enum):
     Exploration=1;
@@ -69,6 +70,7 @@ def move(maze):
         if(position[0]==rows-1 and position[1]==cols-1):
             position[0]=0
             position[1]=0
+            penalty=0
         if (position[0]!=0):
             moves.append(Direction.left)
         if (position[0]!=cols-1):
@@ -88,7 +90,7 @@ def move(maze):
             #exploit
         #print(epsilon**stepsTaken)
         if(currentQEmpty() or strat==1):
-            QFill(maze,moves)
+            QFill(moves)
             d=moves[random.randint(0,len(moves)-1)]#how and why he moves
             print('dumb')
         else:
@@ -124,7 +126,8 @@ def updateRobotPos(dest):
     buildMaze(lab, C, values)
     C.create_oval(0+position[0]*40, 0+position[1]*40, 40+position[0]*40, 40+position[1]*40, fill="yellow")
     
-def QFill(maze,moves):
+def QFill(moves):
+    global maze
     global position
     global Q
     global step
@@ -144,9 +147,8 @@ def QFill(maze,moves):
         if d==Direction.right:
             newpos=[position[0]+1, position[1]]
         reward=reward+values[newpos[0],newpos[1]]
-        state=(position[0],position[1],d)
-        if(Q[position[0]][position[1]].get(state,0)==0):
-            Q[position[0]][position[1]][state]=reward
+        if(Q.get((position[0],position[1],d),0)==0):
+            Q[position[0],position[1],d]=reward
         
 def Qmove(moves):
     global position
@@ -157,9 +159,7 @@ def Qmove(moves):
     global stepExit
     global gamma
     bestd=0
-    bestState=0
     for d in moves:
-        reward=-1000
         newpos=position
         if d==Direction.up:
             newpos=[position[0], position[1]+1]
@@ -169,15 +169,14 @@ def Qmove(moves):
             newpos=[position[0]-1, position[1]]
         if d==Direction.right:
             newpos=[position[0]+1, position[1]]
-        state=(newpos[0],newpos[1],d)
         #update value to better value
-        if Q[newpos[0]][newpos[1]].get(state,-2000)>reward:
+        if Q.get((newpos[0],newpos[1],d),-1000)>=Q.get((position[0],position[1],bestd),-1000 and bestd!=d):
             bestd=d
-            bestState=(newpos[0],newpos[1],bestd)
     #new_q = qsa + (values[newpos[0]][newppos[1]] + gamma * max(q[next_state, :]) - qsa)
-    if (bestd!=0 and bestState!=0):
-        bestState=state
-        Q[newpos[0]][newpos[1]][state]=Q[position[0]][position[1]].get(state,0)+ (values[newpos[0]][newpos[1]] + gamma * Q[newpos[0]][newpos[1]].get(bestState,0) - Q[position[0]][position[1]].get(state,0))
+    if (bestd!=0):
+        Q[position[0],position[1],d]=Q.get((position[0],position[1],d),0)+ (values[newpos[0]][newpos[1]] + gamma * Q.get((newpos[0],newpos[1],bestd),1) - Q.get((position[0],position[1],d),0))
+        print(Q.get((position[0],position[1],d),0))
+        #update arrow
         return bestd
     else:
         return moves[random.randint(0,len(moves)-1)]
@@ -195,19 +194,36 @@ def currentQEmpty():
     if (position[1]!=rows-1):
         moves.append(Direction.up)
     for d in moves:
-        state=(position[0],position[1],d)
-        if (Q[position[0]][position[1]].get(state,0)==0):
+        if (Q.get((position[0],position[1],d),0)==0):
             return 1
     return 0
+    
+def initQ():
+    global Q
+    global rows
+    Q = {}
+    for x in range(rows):
+        for y in range(cols):
+            for dir in Direction:
+                Q[(x, y, dir)] = 0
     
 def showQ():
     thefile = open('Q.txt', 'w')
     for x in range (cols):
         for y in range (rows):
-            print(Q[x][y])
-            thefile.write("%s\t\t" % Q[x][y])
-            print("\t\t")
-        thefile.write("\n")    
+            print(x," ",y)
+            thefile.write("(%s" % x)
+            thefile.write("%s)"% y)
+            print(Q.get((x,y, Direction.up)))
+            print(Q.get((x,y, Direction.down)))
+            print(Q.get((x,y, Direction.left)))
+            print(Q.get((x,y, Direction.right)))
+            thefile.write(" UP:%s" % Q.get((x,y, Direction.up)))
+            thefile.write(" DOWN:%s" % Q.get((x,y, Direction.down)))
+            thefile.write(" LEFT:%s" % Q.get((x,y, Direction.left)))
+            thefile.write(" RIGHT:%s\n" % Q.get((x,y, Direction.right)))
+            print("\n")
+        thefile.write("\n****************************\n")    
         print("\n")
 
 def buildMaze(lab, C, values):
@@ -258,8 +274,7 @@ print("Our Labyrinth:")
 print(lab)
 "get number of lines/rows & columns: LABYRINTH MUST BE SQUARE"
 cols=rows=len(lab.splitlines())
-for i in range(rows):
-    Q.append([{}]*(cols))
+initQ()
 "matrix map of the maze"
 lab=lab.splitlines()
 values=np.zeros((rows,cols))
