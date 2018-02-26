@@ -41,7 +41,7 @@ step=-1
 stepTrap=-20
 stepExit=500
 stepWall=-100
-nbMaxSteps=500   #nombre maximum de dpelacememtns autorises
+nbMaxSteps=5000   #nombre maximum de dpelacememtns autorises
 stepsTaken=0
 penalty=0  #long term penalty
 position=[0, 0] #starting position, top left
@@ -112,7 +112,7 @@ def move(maze):
         penalty=penalty+values[dest[0]][dest[1]]
         if(maze[dest[0]][dest[1]]!='0'): #not a wall
             position=dest
-        top.after(50, updateRobotPos(position))
+        top.after(1, updateRobotPos(position))
         stepsTaken=stepsTaken+1
         print(dest)
         return(dest)
@@ -170,12 +170,11 @@ def Qmove(moves):
         if d==Direction.right:
             newpos=[position[0]+1, position[1]]
         #update value to better value
-        if Q.get((newpos[0],newpos[1],d),-1000)>=Q.get((position[0],position[1],bestd),-1000 and bestd!=d):
+        if Q.get((position[0],position[1],d),-1000)>=Q.get((position[0],position[1],bestd),1000):
             bestd=d
     #new_q = qsa + (values[newpos[0]][newppos[1]] + gamma * max(q[next_state, :]) - qsa)
     if (bestd!=0):
         Q[position[0],position[1],d]=Q.get((position[0],position[1],d),0)+ (values[newpos[0]][newpos[1]] + gamma * Q.get((newpos[0],newpos[1],bestd),1) - Q.get((position[0],position[1],d),0))
-        print(Q.get((position[0],position[1],d),0))
         #update arrow
         return bestd
     else:
@@ -248,7 +247,7 @@ def buildMaze(lab, C, values):
             else:
                 myColor="green"
                 values[x][y]=stepExit
-            C.create_polygon(x*40, y*40, x*40+40, y*40, x*40+40 ,y*40+40, x*40, y*40+40, fill=myColor)
+            C.create_polygon(x*40, y*40, x*40+41, y*40, x*40+41 ,y*40+41, x*40, y*40+41, fill=myColor)
     #robotID=drawRobot(C,20,20,20)
     return maze
 
