@@ -41,7 +41,7 @@ step=-1
 stepTrap=-20
 stepExit=500
 stepWall=-100
-nbMaxSteps=5000   #nombre maximum de dpelacememtns autorises
+nbMaxSteps=500   #nombre maximum de dpelacememtns autorises
 stepsTaken=0
 penalty=0  #long term penalty
 position=[0, 0] #starting position, top left
@@ -159,6 +159,7 @@ def Qmove(moves):
     global stepExit
     global gamma
     bestd=0
+    newd=moves[random.randint(0,len(moves)-1)]
     for d in moves:
         newpos=position
         if d==Direction.up:
@@ -169,16 +170,14 @@ def Qmove(moves):
             newpos=[position[0]-1, position[1]]
         if d==Direction.right:
             newpos=[position[0]+1, position[1]]
-        #update value to better value
-        if Q.get((position[0],position[1],d),-1000)>=Q.get((position[0],position[1],bestd),1000):
+        #update value to best value of new position
+        if Q.get((newpos[0],newpos[1],d),0)>=Q.get((newpos[0],newpos[1],bestd),0):
             bestd=d
-    #new_q = qsa + (values[newpos[0]][newppos[1]] + gamma * max(q[next_state, :]) - qsa)
-    if (bestd!=0):
-        Q[position[0],position[1],d]=Q.get((position[0],position[1],d),0)+ (values[newpos[0]][newpos[1]] + gamma * Q.get((newpos[0],newpos[1],bestd),1) - Q.get((position[0],position[1],d),0))
+        Q[position[0],position[1],d]=Q.get((position[0],position[1],d),0)+ (values[newpos[0]][newpos[1]] + gamma * Q.get((newpos[0],newpos[1],bestd),1) - Q.get((position[0],position[1],d),0))      
         #update arrow
-        return bestd
-    else:
-        return moves[random.randint(0,len(moves)-1)]
+        if Q.get((position[0],position[1],d),0)>=Q.get((position[0],position[1],newd),0):
+            newd=d
+    return newd
     
 def currentQEmpty():
     global Q
