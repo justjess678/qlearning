@@ -21,6 +21,8 @@ import string
 import random
 import tkinter
 from tkinter import *
+from tkinter import ttk, Tk, Toplevel
+import welcome_support
 from enum import Enum
 import numpy as np
 from random import randrange
@@ -55,6 +57,95 @@ epsilon=0.99
 "GUI"
 "build the output window"
 top = Tk()
+font10 = "-family Lato -size 16 -weight normal -slant roman "  \
+            "-underline 0 -overstrike 0"
+font11 = "-family Lato -size 14 -weight normal -slant roman "  \
+            "-underline 0 -overstrike 0"
+font12 = "-family Lato -size 18 -weight normal -slant roman "  \
+    "-underline 0 -overstrike 0"
+font14 = "-family Lato -size 12 -weight normal -slant roman "  \
+    "-underline 0 -overstrike 0"
+font9 = "-family Laksaman -size 24 -weight bold -slant roman "  \
+    "-underline 0 -overstrike 0"
+welcome_window = Toplevel(top)
+welcome_window.title('Q-learning Labyrinth')
+welcome_window.geometry("600x450+750+161")
+usr=tkinter.IntVar()
+usr.set(1)
+mySize=tkinter.StringVar()
+mySize.set('10')
+myPath = StringVar()
+myPath.set("labyrinth.txt")
+lab_window = Toplevel(top)
+lab_window.title('Labyrinth Solver')
+
+top.withdraw() # hide top window
+lab_window.withdraw() # hide lab window
+
+def goto_lab():
+    global usr
+    welcome_window.withdraw()
+    welcome_window.destroy()
+    lab_window.deiconify() # show lab window
+    runLab(usr.get(),int(mySize.get()),myPath.get())
+
+butGo = ttk.Button(welcome_window, \
+                     command=goto_lab)
+#butGo.configure(foreground="#7bd93b")
+#butGo.configure(font=font12)
+butGo.configure(text='''Go!''')
+butGo.place(relx=0.48, rely=0.84, height=41, width=65)
+
+Title = Label(welcome_window)
+Title.configure(text='''Q-Learning Labyrinth''')
+Title.configure(foreground="#b30000")
+Title.configure(font=font9)
+Title.place(relx=0.25, rely=0.04, height=67, width=326)
+
+filepath = Entry(welcome_window, textvariable=myPath)
+filepath.place(relx=0.63, rely=0.4,height=30, relwidth=0.28)
+filepath.configure(width=166)
+
+pathLabel = Label(welcome_window)
+pathLabel.place(relx=0.55, rely=0.4, height=27, width=47)
+pathLabel.configure(font=font11)
+pathLabel.configure(text='''Path:''')
+
+Message1 = Message(welcome_window)
+Message1.place(relx=0.57, rely=0.49, relheight=0.29, relwidth=0.33)
+Message1.configure(text='''Files must be .txt types, with an equal number of rows and columns. '1' represents an empty square, '0' represents a wall, '3' represents a trap and '5' represents the exit. We recommend putting '5' at the bottom right and a '1' at the top left.''')
+Message1.configure(width=200)
+
+randomBut = Radiobutton(welcome_window, variable=usr, value=1)
+randomBut.place(relx=0.08, rely=0.31, relheight=0.07, relwidth=0.36)
+randomBut.configure(activebackground="#d9d9d9")
+randomBut.configure(font=font10)
+randomBut.configure(justify=LEFT)
+randomBut.configure(text='''Random Labyrinth''')
+        
+udef = Radiobutton(welcome_window, variable=usr, value=2)
+udef.place(relx=0.47, rely=0.31, relheight=0.07, relwidth=0.45)
+udef.configure(activebackground="#d9d9d9")
+udef.configure(font=font10)
+udef.configure(justify=LEFT)
+udef.configure(text='''User-defined Labyrinth''')
+
+Spinbox1 = Spinbox(welcome_window, from_=1.0, to=100.0, textvariable=mySize)
+Spinbox1.place(relx=0.32, rely=0.4, relheight=0.06, relwidth=0.08)
+Spinbox1.configure(activebackground="#f9f9f9")
+Spinbox1.configure(background="white")
+Spinbox1.configure(font=font14)
+Spinbox1.configure(from_="1.0")
+Spinbox1.configure(to="20.0")
+Spinbox1.configure(width=50)
+
+pathLabel1 = Label(welcome_window)
+pathLabel1.place(relx=0.2, rely=0.4, height=27, width=47)
+pathLabel1.configure(activebackground="#f9f9f9")
+pathLabel1.configure(font=font11)
+pathLabel1.configure(text='''Size:''')
+
+
     
 def move(maze):
     global penalty
@@ -247,7 +338,6 @@ def buildMaze(lab, C, values):
                 myColor="green"
                 values[x][y]=stepExit
             C.create_polygon(x*40, y*40, x*40+41, y*40, x*40+41 ,y*40+41, x*40, y*40+41, fill=myColor)
-    #robotID=drawRobot(C,20,20,20)
     return maze
 
 def drawRobot(canv,x,y,rad):
@@ -266,23 +356,30 @@ def randomMaze(size):
     rmaze[0][0]='1'
     return rmaze
     
-myFile = open("labyrinth.txt","r")
-lab=myFile.read()
-print("Our Labyrinth:")
-print(lab)
-"get number of lines/rows & columns: LABYRINTH MUST BE SQUARE"
-cols=rows=len(lab.splitlines())
-initQ()
-"matrix map of the maze"
-lab=lab.splitlines()
-values=np.zeros((rows,cols))
-C = Canvas(top, bg = "white", height = rows*40, width = cols*40)
-maze=buildMaze(lab, C, values)
-C.pack()
-d=Direction.up    
-#move
-while(stepsTaken<nbMaxSteps):
-    move(maze)
-    top.update()
+def runLab(userChoice=1, size=10, path='labyrinth.txt'):
+    global top, lab_window, values, C, rows, cols, lab
+    if userChoice==2:
+        myFile = open(path,"r")
+        lab=myFile.read()
+        "get number of lines/rows & columns: LABYRINTH MUST BE SQUARE"
+        cols=rows=len(lab.splitlines())
+        "matrix map of the maze"
+        lab=lab.splitlines()
+    elif userChoice==1:
+        lab=randomMaze(size)
+        cols=rows=size
+    print("Our Labyrinth:")
+    print(lab)
+    initQ()
+    values=np.zeros((rows,cols))
+    C = Canvas(lab_window, bg = "white", height = rows*40, width = cols*40)
+    maze=buildMaze(lab, C, values)
+    C.pack()
+    #move
+    while(stepsTaken<nbMaxSteps):
+        move(maze)
+        top.update()
+    top.mainloop()
+
 top.mainloop()
 showQ()
