@@ -37,6 +37,7 @@ class Direction(Enum):
     down=1
     left=2
     right=3
+directions=[Direction.up, Direction.down, Direction.left, Direction.right]
 
 "couts des actions"
 step=-1
@@ -47,7 +48,7 @@ nbMaxSteps=500   #nombre maximum de dpelacememtns autorises
 stepsTaken=0
 penalty=0  #long term penalty
 position=[0, 0] #starting position, top left
-Q=[]
+Q = {}
 gamma=0.95
 robotID=0
 "strategies"
@@ -266,7 +267,7 @@ def Qmove(moves):
             bestd=d
         Q[position[0],position[1],d]=Q.get((position[0],position[1],d),0)+ (values[newpos[0]][newpos[1]] + gamma * Q.get((newpos[0],newpos[1],bestd),1) - Q.get((position[0],position[1],d),0))      
         #update arrow
-        if Q.get((position[0],position[1],d),0)>=Q.get((position[0],position[1],newd),0):
+        if Q.get((position[0],position[1],d),0)>Q.get((position[0],position[1],newd),0):
             newd=d
     return newd
     
@@ -290,35 +291,38 @@ def currentQEmpty():
 def initQ():
     global Q
     global rows
-    Q = {}
     for x in range(rows):
         for y in range(cols):
             for dir in Direction:
                 Q[(x, y, dir)] = 0
-    
+nbvis=0   
 def showQ():
-    thefile = open('Q.txt', 'w')
-    for x in range (cols):
-        for y in range (rows):
-            print(x," ",y)
-            thefile.write("(%s" % x)
-            thefile.write("%s)"% y)
-            print(Q.get((x,y, Direction.up)))
-            print(Q.get((x,y, Direction.down)))
-            print(Q.get((x,y, Direction.left)))
-            print(Q.get((x,y, Direction.right)))
-            thefile.write(" UP:%s" % Q.get((x,y, Direction.up)))
-            thefile.write(" DOWN:%s" % Q.get((x,y, Direction.down)))
-            thefile.write(" LEFT:%s" % Q.get((x,y, Direction.left)))
-            thefile.write(" RIGHT:%s\n" % Q.get((x,y, Direction.right)))
-            print("\n")
+    global nbvis
+    x=position[0]
+    y=position[1]
+    if(nbvis==0):
+        thefile = open('Q.txt', 'w')
+    else:
+        thefile = open('Q.txt', 'a')
+    print(x," ",y)
+    thefile.write("(%s, " % x)
+    thefile.write("%s)"% y)
+    print(" UP:%s" % Q.get((x,y, Direction.up)))
+    print(" DOWN:%s" % Q.get((x,y, Direction.down)))
+    print(" LEFT:%s" % Q.get((x,y, Direction.left)))
+    print(" RIGHT:%s\n" % Q.get((x,y, Direction.right)))
+    thefile.write(" UP:%s" % Q.get((x,y, Direction.up)))
+    thefile.write(" DOWN:%s" % Q.get((x,y, Direction.down)))
+    thefile.write(" LEFT:%s" % Q.get((x,y, Direction.left)))
+    thefile.write(" RIGHT:%s\n" % Q.get((x,y, Direction.right)))
+    print("\n")
+    if(x==cols-1):
         thefile.write("\n****************************\n")    
         print("\n")
+    nbvis=nbvis+1
 
 def buildMaze(lab, C, values):
-    global rows
-    global cols
-    global robot
+    global rows,cols,robot,directions
     maze=[]
     for i in range(rows):
         maze.append([0]*(cols))
@@ -338,6 +342,48 @@ def buildMaze(lab, C, values):
                 myColor="green"
                 values[x][y]=stepExit
             C.create_polygon(x*40, y*40, x*40+41, y*40, x*40+41 ,y*40+41, x*40, y*40+41, fill=myColor)
+            #get best direciton
+            moves=[]
+            if (x>=0):
+                moves.append(Direction.left)
+            if (x<cols):
+                moves.append(Direction.right)
+            if (y>=0):
+                moves.append(Direction.down)
+            if (y<rows):
+                moves.append(Direction.up)
+            bestd=moves[0]
+            for d in moves:
+                if(Q.get((x,y,d),-1000)>(Q.get((x,y,bestd),-1000))):
+                    bestd=d                
+            if (bestd==Direction.up):
+                arrow="up"
+            elif (bestd==Direction.down):
+                arrow="down"
+            elif (bestd==Direction.left):
+                arrow="left"
+            elif (bestd==Direction.right):
+                arrow="right"
+            if(Q.get((x,y,bestd),-1000)>-1 and Q.get((x,y,bestd),-1000)<=100):
+                #lightest arrow
+                arrow+="1.gif"
+            elif(Q.get((x,y,bestd),-1000)>100 and Q.get((x,y,bestd),-1000)<=200):
+                arrow+="2.gif"
+            elif(Q.get((x,y,bestd),-1000)>200 and Q.get((x,y,bestd),-1000)<=300):
+                arrow+="3.gif"
+            elif(Q.get((x,y,bestd),-1000)>300 and Q.get((x,y,bestd),-1000)<=400):
+                arrow+="4.gif"
+            elif(Q.get((x,y,bestd),-1000)>400):
+                arrow+=".gif"
+            elif(Q.get((x,y,bestd),-1000)<=-1 or Q.get((x,y,bestd),-1000)==0 or Q.get((x,y,bestd),-1000)==-1000):
+                arrow=0
+            if(arrow!=0 and maze[x][y]=="1"):
+                #show arrow
+                img = tkinter.PhotoImage(file=arrow)
+                arrowPic = Label(image=img)
+                arrowPic.image = img # keep a reference!
+                C.create_image((x*40,y*40),image=img,anchor='nw')
+                
     return maze
 
 def drawRobot(canv,x,y,rad):
@@ -379,7 +425,7 @@ def runLab(userChoice=1, size=10, path='labyrinth.txt'):
     while(stepsTaken<nbMaxSteps):
         move(maze)
         top.update()
-    top.mainloop()
+        showQ()
+    #top.mainloop()
 
 top.mainloop()
-showQ()
